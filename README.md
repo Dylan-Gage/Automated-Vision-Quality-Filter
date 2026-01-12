@@ -29,7 +29,7 @@ guidenav_quality_filter/
 ├── main.py                     # "Inference": The production simulator
 └── requirements.txt            # Dependency management
 # How It Works
-1. Calibration (Offline)We assume "Good" image quality follows a distribution. The calibrate.py script iterates through a verified dataset to calculate:Mean and Standard Deviation for Sharpness, Dark Pixels, and Light Pixels 2. Inference (Real-Time)The robot loads the calibrated thresholds and runs the pipeline :Check Exposure: Is the % of dark/light pixels within the Mean + 3 STD limit?If No: Reject immediately (Fast Fail).Check Blur: Is the Laplacian Variance > Mean - 3 STD?If No: Reject. Accept Frame: Pass to navigation system.
+1. Calibration (Offline)We assume "Good" image quality follows a distribution. The calibrate.py script iterates through a verified dataset to calculate: Mean and Standard Deviation for Sharpness, Dark Pixels, and Light Pixels 2. We filter through collected images to decide which to keep and which to discard.
 # Setup & Usage 
 Install DependenciesBashpython -m venv venv
 source venv/bin/activate  # or venv\Scripts\activate on Windows
