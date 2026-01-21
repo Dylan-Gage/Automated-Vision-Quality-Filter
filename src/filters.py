@@ -24,6 +24,32 @@ class RedundancyFilter():
             self.last_thumb_frame = frame
             return False
 
+class ExposureFilter():
+    def __init__(self, sky_crop_ratio=0.3, min_threshold=40, max_threshold=220):
+        self.sky_crop_ratio = sky_crop_ratio
+        self.min_threshold = min_threshold
+        self.max_threshold = max_threshold
+    
+    def is_well_exposed(self, frame):
+        h,w = frame.shape[:2]
+
+        crop_start = int(h*self.sky_crop_ratio)
+
+        ground_roi = frame[crop_start:, :]
+        gray_roi = cv2.cvtColor(ground_roi, cv2.COLOR_BGR2GRAY)
+
+        avg_brightness = np.mean(gray_roi)
+
+        if avg_brightness < self.min_threshold:
+            return False
+        elif avg_brightness > self.max_threshold:
+            return False
+        return True
+    
+
+
+
+
 
 def image_blur_score(image):
     """
