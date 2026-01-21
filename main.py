@@ -1,32 +1,46 @@
 import cv2
 import os
-from src.filters import is_image_acceptable
+import glob
+from src.filters import RedundancyFilter
 
-BLUR_THRESHOLD = 24.61 #Should be your real threshold
+def main():
+    input_folder = "data/raw_images"
+    output_folder = "data/processed_images"
+    os.makedirs(output_folder, exist_ok=True)
 
-folder_path = os.path.join("data", "raw")
+    redundancy_checker = RedundancyFilter(threshold=50.0)
 
-if not os.path.exists(folder_path):
-        print(f"Error: folder not found at {folder_path}")
-        exit()
+    image_files = glob.glob(os.path.join(input_folder, "*.png")) 
 
-file_names = os.listdir(folder_path)
-acceptable_images = []
+    try:
+        image_files.sort(key=lambda f: int(''.join(filter(str.isdigit, os.path.basename(f)))))
+    except ValueError:
+        image_files.sort()
 
-print(f"Processing {len(file_names)} images...")
+    print(f"Found {len(image_files)} images to process.")
 
-for file_name in file_names:
-    if not file_name.endswith((".png", ".jpg", ".jpeg")):
-         continue
-         
-    file_path = os.path.join(folder_path, file_name)
-    img = cv2.imread(file_path)
+    count_saved = 0
 
-    if img is None:
-        print(f"Error: Could not load image at {file_path}")
-    else:
-        if is_image_acceptable(img, BLUR_THRESHOLD):
-            acceptable_images.append(file_name)
+    for image_path in image_files:
 
-print(acceptable_images)
+        frame = cv2.imread(image_path)
+
+        if frame is None:
+            print(f"WARNING: could not read {image_path}")
+            continue
+
+        if redundancy_checker.is_duplicate(frame):
+            continue
+
+        filename = os.path.basename(image_path)
+        save_path = os.path.join(output_folder, filename)
+        cv2.imwrite(save_path, frame)
+        count_saved += 1
+
+if __name__ == "__main__":
+    main()
+
+
+
+
 
