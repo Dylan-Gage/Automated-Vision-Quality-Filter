@@ -37,6 +37,10 @@ def main():
         cv2.imwrite(save_path, frame)
         count_saved += 1
 
+        print(f"Saved: {filename}")
+
+    print(f"Processing complete. Saved {count_saved}/{len(image_files)} frames.")
+
 if __name__ == "__main__":
     main()
 
