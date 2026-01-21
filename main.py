@@ -1,7 +1,7 @@
 import cv2
 import os
 import glob
-from src.filters import RedundancyFilter
+from src.filters import RedundancyFilter, ExposureFilter
 
 def main():
     input_folder = "data/raw_images"
@@ -9,6 +9,7 @@ def main():
     os.makedirs(output_folder, exist_ok=True)
 
     redundancy_checker = RedundancyFilter(threshold=50.0)
+    exposure_checker = ExposureFilter(sky_crop_ratio=0.3)
 
     image_files = glob.glob(os.path.join(input_folder, "*.png")) 
 
@@ -30,6 +31,9 @@ def main():
             continue
 
         if redundancy_checker.is_duplicate(frame):
+            continue
+
+        if not exposure_checker.is_well_exposed(frame):
             continue
 
         filename = os.path.basename(image_path)
