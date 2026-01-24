@@ -10,7 +10,7 @@ class RedundancyFilter():
 
     def is_duplicate(self, frame):
         thumb = cv2.resize(frame, self.thumb_size, interpolation=cv2.INTER_AREA)
-        thumb = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        thumb = cv2.cvtColor(thumb, cv2.COLOR_BGR2GRAY)
 
         if self.last_thumb_frame is None:
             self.last_thumb_frame = thumb
@@ -82,7 +82,6 @@ class BlurFilter():
     def image_blur_score(self, frame):
         
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gray = cv2.GaussianBlur(gray, (3, 3), 0)
         variance = cv2.Laplacian(gray, cv2.CV_64F).var()
         return variance > self.blur_threshold
 
