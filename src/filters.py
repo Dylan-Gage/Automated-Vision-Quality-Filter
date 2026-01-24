@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from ultralytics import YOLO
 
 class RedundancyFilter():
     def __init__(self, threshold=50.0, thumb_size=(64, 64)):
@@ -47,9 +48,32 @@ class ExposureFilter():
         return True
     
 
+class SemanticFilter():
+    def __init__(self, model_size="yolov8n.pt",max_object_coverage=0.05):
+        self.model = YOLO(model_size)
+        self.dynamic_classes[0,1,2,3,5,7]
+        self.max_ratio = max_object_coverage
 
+    def has_dynamic_objects(self, frame):
+        h, w = frame.shape[:2]
+        total_pixels = h*w
 
+        results = self.model(frame, verbose=False)
+        dynamic_pixel_count = 0
 
+        for r in results:
+            boxes = r.boxes
+            for box in boxes:
+                cls_id = int(box.cls[0])
+                if cls_id in self.dynamic_classes:
+                    x1, y1, x2, y2 = box.xyxy[0]
+                    box_area = (x2-x1) * (y2-y1)
+                    dynamic_pixel_count += box_area
+            
+        ratio = dynamic_pixel_count / total_pixels
+        if ratio > self.max_ratio:
+            return True
+        return False
 
 def image_blur_score(image):
     """
