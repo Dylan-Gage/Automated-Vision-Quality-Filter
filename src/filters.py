@@ -28,6 +28,53 @@ class RedundancyFilter():
             self.last_thumb_frame = thumb
             return False
 
+class MovementFilter():
+    def __init__(self, min_translation):
+        self.min_translation = min_translation
+        self.last_keypoints = None
+        self.last_descriptors = None
+
+        self.orb = cv2.ORB_create(nfeatures=500)
+        self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+
+    def is_moving(self, frame):
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        keypoints, descriptors = self.orb.detectAndCompute(gray, None)
+
+        if self.last_keypoints is None:
+            self.last_keypoints = keypoints
+            self.last_descriptors = descriptors
+            return True
+        if descriptors is None or len(descriptors) < 10:
+            return True
+        
+        matches = self.matcher.match(self.last_descriptors, descriptors)
+
+        matches = sorted(matches, key=lambda x: x.distance)
+        good_matches = matches[:int(len(matches) * 0.5)]
+
+        if len(good_matches) < 5:
+            self.last_keypoints = keypoints
+            self.last_descriptors = descriptors
+            return True
+        
+        shifts = []
+        for m in good_matches:
+            pt_prev = self.last_keypoints[m.queryIdx].pt
+            pt_curr = keypoints[m.trainIdx].pt
+
+            dist = np.linalg.norm(np.array(pt_prev) - np.array(pt_curr))
+            shifts.append(dist)
+
+            median_shift = np.median(shifts)
+            if median_shift < self.min_translation:
+                return False
+            else:
+                self.last_descriptors = descriptors
+                self.last_keypoints = keypoints
+                return True
+
 class ExposureFilter():
     def __init__(self, sky_exclusion_ratio=0.3, min_threshold=40, max_threshold=220):
         self.sky_exclusion_ratio = sky_exclusion_ratio

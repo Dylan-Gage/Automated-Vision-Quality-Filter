@@ -1,7 +1,7 @@
 import cv2
 import os
 import glob
-from src.filters import RedundancyFilter, ExposureFilter, SemanticFilter, BlurFilter
+from src.filters import RedundancyFilter, ExposureFilter, SemanticFilter, BlurFilter, MovementFilter
 
 def main():
     input_folder = "data/raw"
@@ -9,9 +9,10 @@ def main():
     os.makedirs(output_folder, exist_ok=True)
 
     redundancy_checker = RedundancyFilter(threshold=99.0)
-    exposure_checker = ExposureFilter(sky_crop_ratio=0.3)
+    exposure_checker = ExposureFilter(sky_exclusion_ratio=0.3)
     semantic_checker = SemanticFilter(model_size="yolov8n.pt", max_object_coverage=0.10)
     blur_checker = BlurFilter(blur_threshold=500.0)
+    movement_checker = MovementFilter(min_translation=2.0)
 
     image_files = glob.glob(os.path.join(input_folder, "*.png")) 
 
@@ -33,6 +34,9 @@ def main():
             continue
 
         if redundancy_checker.is_duplicate(frame):
+            continue
+
+        if not movement_checker.is_moving(frame):
             continue
 
         if not exposure_checker.is_well_exposed(frame):
