@@ -51,7 +51,7 @@ class ExposureFilter():
 class SemanticFilter():
     def __init__(self, model_size="yolov8n.pt",max_object_coverage=0.05):
         self.model = YOLO(model_size)
-        self.dynamic_classes[0,1,2,3,5,7]
+        self.dynamic_classes = [0,1,2,3,5,7]
         self.max_ratio = max_object_coverage
 
     def has_dynamic_objects(self, frame):
