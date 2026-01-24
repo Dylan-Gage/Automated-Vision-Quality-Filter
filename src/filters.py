@@ -8,6 +8,9 @@ class RedundancyFilter():
         self.thumb_size = thumb_size
         self.last_thumb_frame = None
 
+    def reset(self):
+        self.last_tumb_frame = None
+
     def is_duplicate(self, frame):
         thumb = cv2.resize(frame, self.thumb_size, interpolation=cv2.INTER_AREA)
         thumb = cv2.cvtColor(thumb, cv2.COLOR_BGR2GRAY)
@@ -26,15 +29,18 @@ class RedundancyFilter():
             return False
 
 class ExposureFilter():
-    def __init__(self, sky_crop_ratio=0.3, min_threshold=40, max_threshold=220):
-        self.sky_crop_ratio = sky_crop_ratio
+    def __init__(self, sky_exclusion_ratio=0.3, min_threshold=40, max_threshold=220):
+        self.sky_exclusion_ratio = sky_exclusion_ratio
         self.min_threshold = min_threshold
         self.max_threshold = max_threshold
+
+        if min_threshold >= max_threshold:
+            raise ValueError("min_threshold must be less than max_threshold")
     
     def is_well_exposed(self, frame):
         h, w = frame.shape[:2]
 
-        crop_start = int(h*self.sky_crop_ratio)
+        crop_start = int(h*self.sky_exclusion_ratio)
 
         ground_roi = frame[crop_start:, :]
         gray_roi = cv2.cvtColor(ground_roi, cv2.COLOR_BGR2GRAY)
