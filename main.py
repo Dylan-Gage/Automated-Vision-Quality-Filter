@@ -1,7 +1,7 @@
 import cv2
 import os
 import glob
-from src.filters import RedundancyFilter, ExposureFilter
+from src.filters import RedundancyFilter, ExposureFilter, SemanticFilter
 
 def main():
     input_folder = "data/raw_images"
@@ -10,6 +10,7 @@ def main():
 
     redundancy_checker = RedundancyFilter(threshold=50.0)
     exposure_checker = ExposureFilter(sky_crop_ratio=0.3)
+    semantic_checker = SemanticFilter(model_size="yolov8n.pt", max_object_coverage=0.10)
 
     image_files = glob.glob(os.path.join(input_folder, "*.png")) 
 
@@ -34,6 +35,9 @@ def main():
             continue
 
         if not exposure_checker.is_well_exposed(frame):
+            continue
+
+        if semantic_checker.has_dynamic_objects(frame):
             continue
 
         filename = os.path.basename(image_path)
