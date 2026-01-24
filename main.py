@@ -1,16 +1,17 @@
 import cv2
 import os
 import glob
-from src.filters import RedundancyFilter, ExposureFilter, SemanticFilter
+from src.filters import RedundancyFilter, ExposureFilter, SemanticFilter, BlurFilter
 
 def main():
     input_folder = "data/raw"
     output_folder = "data/processed_images"
     os.makedirs(output_folder, exist_ok=True)
 
-    redundancy_checker = RedundancyFilter(threshold=50.0)
+    redundancy_checker = RedundancyFilter(threshold=99.0)
     exposure_checker = ExposureFilter(sky_crop_ratio=0.3)
     semantic_checker = SemanticFilter(model_size="yolov8n.pt", max_object_coverage=0.10)
+    blur_checker = BlurFilter(blur_threshold=500.0)
 
     image_files = glob.glob(os.path.join(input_folder, "*.png")) 
 
@@ -37,15 +38,19 @@ def main():
         if not exposure_checker.is_well_exposed(frame):
             continue
 
+        if blur_checker.image_blur_score(frame):
+            continue
+
         if semantic_checker.has_dynamic_objects(frame):
             continue
+
 
         filename = os.path.basename(image_path)
         save_path = os.path.join(output_folder, filename)
         cv2.imwrite(save_path, frame)
         count_saved += 1
 
-        print(f"Saved: {filename}")
+        #print(f"Saved: {filename}")
 
     print(f"Processing complete. Saved {count_saved}/{len(image_files)} frames.")
 
