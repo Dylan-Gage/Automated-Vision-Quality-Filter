@@ -1,3 +1,5 @@
+***NEEDS UPDATE***
+***OUT OF DATE VERSION OF README***
 Automated Vision Quality Filter 
 A lightweight, statistically calibrated computer vision pipeline to filter low-quality frames for robotic vision systems.
 
