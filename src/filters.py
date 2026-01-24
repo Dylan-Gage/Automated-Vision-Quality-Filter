@@ -10,10 +10,10 @@ class RedundancyFilter():
 
     def is_duplicate(self, frame):
         thumb = cv2.resize(frame, self.thumb_size, interpolation=cv2.INTER_AREA)
-        thumb = cv2.color(frame, cv2.COLOR_BGR2GRAY)
+        thumb = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         if self.last_thumb_frame is None:
-            self.last_thumb_frame = frame
+            self.last_thumb_frame = thumb
             return False
         
         err = np.sum((thumb.astype("float") - self.last_thumb_frame.astype("float")) ** 2)
@@ -22,7 +22,7 @@ class RedundancyFilter():
         if err < self.threshold:
             return True
         else:
-            self.last_thumb_frame = frame
+            self.last_thumb_frame = thumb
             return False
 
 class ExposureFilter():

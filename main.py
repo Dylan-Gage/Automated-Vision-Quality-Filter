@@ -4,7 +4,7 @@ import glob
 from src.filters import RedundancyFilter, ExposureFilter, SemanticFilter
 
 def main():
-    input_folder = "data/raw_images"
+    input_folder = "data/raw"
     output_folder = "data/processed_images"
     os.makedirs(output_folder, exist_ok=True)
 
