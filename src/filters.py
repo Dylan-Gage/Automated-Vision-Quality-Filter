@@ -3,15 +3,30 @@ import numpy as np
 from ultralytics import YOLO
 
 class RedundancyFilter():
+    """Rejects identical or near-identical frames to reduce dataset bloat."""
+
     def __init__(self, threshold=50.0, thumb_size=(64, 64)):
+        """
+        Args:
+            threshold (float): MSE value below which a frame is considered a duplicate.
+            thumb_size (tuple): Downscale size for noise-invariant comparison.
+        """
         self.threshold = threshold
         self.thumb_size = thumb_size
         self.last_thumb_frame = None
 
     def reset(self):
-        self.last_tumb_frame = None
+        """Clears state for new video sequences."""
+        self.last_thumb_frame = None
 
     def is_duplicate(self, frame):
+        """
+        Uses Perceptual Hashing (MSE) to detect static robot states.
+        
+        Why: Downscaling to 64x64 via INTER_AREA acts as a low-pass filter, 
+        removing sensor noise that would otherwise trigger a false 'move' detection.
+        """
+        # Downscale and grayscale to ensure (H, W) matches for subtraction
         thumb = cv2.resize(frame, self.thumb_size, interpolation=cv2.INTER_AREA)
         thumb = cv2.cvtColor(thumb, cv2.COLOR_BGR2GRAY)
 
@@ -19,17 +34,25 @@ class RedundancyFilter():
             self.last_thumb_frame = thumb
             return False
         
+        # Calculate Mean Squared Error
         err = np.sum((thumb.astype("float") - self.last_thumb_frame.astype("float")) ** 2)
         err /= float(thumb.shape[0] * thumb.shape[1])
 
         if err < self.threshold:
             return True
         else:
+            # Only update reference if we actually moved significantly
             self.last_thumb_frame = thumb
             return False
 
 class MovementFilter():
+    """Differentiates camera motion from scene motion (like reflections)."""
+
     def __init__(self, min_translation):
+        """
+        Args:
+            min_translation (float): Minimum median pixel shift to count as movement.
+        """
         self.min_translation = min_translation
         self.last_keypoints = None
         self.last_descriptors = None
@@ -38,7 +61,13 @@ class MovementFilter():
         self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
     def is_moving(self, frame):
-
+        """
+        Calculates global camera movement using the median shift of ORB features.
+        
+        Why: Using the Median rather than Mean allows us to ignore 'outlier' 
+        motion, such as a person walking by or a reflection in a glass door 
+        while the robot is stationary.
+        """
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         keypoints, descriptors = self.orb.detectAndCompute(gray, None)
 
@@ -76,6 +105,7 @@ class MovementFilter():
                 return True
 
 class ExposureFilter():
+    """Rejects frames that are under or over-exposed in the ROI."""
     def __init__(self, sky_exclusion_ratio=0.3, min_threshold=40, max_threshold=220):
         self.sky_exclusion_ratio = sky_exclusion_ratio
         self.min_threshold = min_threshold
@@ -85,6 +115,13 @@ class ExposureFilter():
             raise ValueError("min_threshold must be less than max_threshold")
     
     def is_well_exposed(self, frame):
+        """
+        Analyzes brightness only on the ground/ROI.
+        
+        Why: SLAM relies on floor/wall features. A bright sky can cause 
+        auto-exposure to underexpose the ground, making features undiscernible. 
+        We slice the frame to focus the 'Gatekeeper' on relevant data.
+        """
         h, w = frame.shape[:2]
 
         crop_start = int(h*self.sky_exclusion_ratio)
@@ -94,20 +131,25 @@ class ExposureFilter():
 
         avg_brightness = np.mean(gray_roi)
 
-        if avg_brightness < self.min_threshold:
-            return False
-        elif avg_brightness > self.max_threshold:
-            return False
-        return True
+        return self.min_threshold <= avg_brightness <= self.max_threshold
     
 
 class SemanticFilter():
+    """Prevents dynamic objects from corrupting the static map."""
+
     def __init__(self, model_size="yolov8n.pt",max_object_coverage=0.05):
         self.model = YOLO(model_size)
-        self.dynamic_classes = [0,1,2,3,5,7]
+        self.dynamic_classes = [0,1,2,3,5,7] # Person, bicycle, car, motorcycle, bus, truck
         self.max_ratio = max_object_coverage
 
     def has_dynamic_objects(self, frame):
+        """
+        Calculates the ratio of the frame occupied by moving COCO classes.
+        
+        Why: Small dynamic objects in the distance don't hurt SLAM much, but 
+        large objects (like a person standing in front of the robot) break 
+        the static world assumption.
+        """
         h, w = frame.shape[:2]
         total_pixels = h*w
 
