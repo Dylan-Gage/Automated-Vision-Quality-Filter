@@ -88,21 +88,18 @@ class MovementFilter():
             self.last_descriptors = descriptors
             return True
         
-        shifts = []
-        for m in good_matches:
-            pt_prev = self.last_keypoints[m.queryIdx].pt
-            pt_curr = keypoints[m.trainIdx].pt
+        pts_prev = np.array([self.last_keypoints[m.queryIdx].pt for m in good_matches])
+        pts_curr = np.array([keypoints[m.trainIdx].pt for m in good_matches])
 
-            dist = np.linalg.norm(np.array(pt_prev) - np.array(pt_curr))
-            shifts.append(dist)
+        distances = np.linalg.norm(pts_prev - pts_curr, axis=1)
+        median_shift = np.median(distances)
 
-            median_shift = np.median(shifts)
-            if median_shift < self.min_translation:
-                return False
-            else:
-                self.last_descriptors = descriptors
-                self.last_keypoints = keypoints
-                return True
+        # Calculate Euclidean distances for all points at once
+        if median_shift < self.min_translation:
+            return False
+        
+        self.last_descriptors, self.last_keypoints = descriptors, keypoints
+        return True
 
 class ExposureFilter():
     """Rejects frames that are under or over-exposed in the ROI."""
