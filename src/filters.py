@@ -147,25 +147,17 @@ class SemanticFilter():
         large objects (like a person standing in front of the robot) break 
         the static world assumption.
         """
-        h, w = frame.shape[:2]
-        total_pixels = h*w
-
         results = self.model(frame, verbose=False)
-        dynamic_pixel_count = 0
+        dynamic_area = 0.0
 
         for r in results:
-            boxes = r.boxes
-            for box in boxes:
-                cls_id = int(box.cls[0])
-                if cls_id in self.dynamic_classes:
-                    x1, y1, x2, y2 = box.xyxy[0]
-                    box_area = (x2-x1) * (y2-y1)
-                    dynamic_pixel_count += box_area
+            for box in r.boxes:
+                if int(box.cls[0]) in self.dynamic_classes:
+                    x1, y1, x2, y2 = box.xyxy[0].tolist()
+                    dynamic_area += (x2 - x1) * (y2 - y1)
             
-        ratio = dynamic_pixel_count / total_pixels
-        if ratio > self.max_ratio:
-            return True
-        return False
+        ratio = dynamic_area / (frame.shape[0] * frame.shape[1])
+        return ratio > self.max_ratio
 
 class BlurFilter():
     def __init__(self, blur_threshold=100.0):
